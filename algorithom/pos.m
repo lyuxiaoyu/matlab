@@ -44,7 +44,7 @@ for gen = 1: genMax
     % 更新速度
     r1 = rand([popsize, 2]) * c1;
     r2 = rand([popsize, 2]) * c2;
-    popV = w .* popV + r1 .* (popRecord - pop) + r2 .* (rep(popRecord(bestIndex, :), [popsize, 1]) - pop);
+    popV = w .* popV + r1 .* (popRecord - pop) + r2 .* (repmat(popRecord(bestIndex, :), [popsize, 1]) - pop);
     popV(popV(:, 1) < lxv, 1) = lxv;
     popV(popV(:, 1) > uxv, 1) = uxv;
     popV(popV(:, 2) < lyv, 2) = lyv;

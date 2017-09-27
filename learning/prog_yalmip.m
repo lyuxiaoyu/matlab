@@ -6,19 +6,21 @@
 % % 2*x1+x2+6*x3<=800  
 % % x3+x4+5*x5<=200  
 
+clc
+clear
 
-x = intvar(1, 5);  % 产生变量
-f = [1 1 3 4 2] * (x'.^2) - [8 2 3 1 2] * x'; % 目标函数
-F = [0 <= x <= 99];  % 约束条件
-F = F + [[1 1 1 1 1] * x' <= 400]; 
-F = F + [[1 2 2 1 6] * x' <= 800];
-F = F + [2 * x(1) + x(2) + 6 * x(3) <= 800];  
-F = F + [x(3) + x(4) + 5 * x(5) <= 200];
-%ops default
-%ops = sdpsettings(option1, value1, option2, value2, ...);
-solvesdp(F,-f)  % 解决最小化问题   % solvesdp(F, f, ops)
-double(f)    % 显示结果
-double(x)    
+x = intvar(5, 1);  % 产生变量
+f = [1 1 3 4 2] * (x .^ 2) - [8 2 3 1 2] * x; % 目标函数
+F = (0 <= x <= 100);   % 约束条件
+F = F + ([1 1 1 1 1] * x <= 400); 
+F = F + ([1 2 2 1 6] * x <= 800);
+F = F + (2 * x(1) + x(2) + 6 * x(3) <= 800);  
+F = F + (x(3) + x(4) + 5 * x(5) <= 200);
+% ops default
+ops = sdpsettings('solver', 'bmibnb', 'verbose', 0);
+solvesdp(F, -f, ops);  % solvesdp解决最小化问题
+double(f);    % 显示结果
+double(x);
  
 
 
