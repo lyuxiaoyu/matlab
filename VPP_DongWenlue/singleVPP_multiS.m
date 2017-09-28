@@ -1,10 +1,7 @@
 clear
 clc
 
-load sp
-load spp
-load wp
-load wpp
+load sampleData
 
 T = 24;
 S = 50;
@@ -35,6 +32,10 @@ QMin = 3 * 3600;
 J = 23.7 * 3600;    % m^3/s
 A = 352.8 / 3600;   % A*Q kw/h
 
+cto = ones(1,24) * 0.59; % 峰谷电价
+cto(1: 7) = 0.26;   
+cto(17: 21) = 0.92;
+
 c1 = 0.61;
 c2 = 1;
 c3 = 0.2;
@@ -49,16 +50,13 @@ Qst = sdpvar(S, T);
 P0t = sdpvar(1, T);
 
 dPt = (repmat(P0t,[S 1])- P1st - P2st - A * Qst);
-
-f = pro' * sum((c1 * P1st + c2 * P2st + c3 * A * Qst  - (cp+cn)/2 * abs(dPt) + (cp-cn)/2 * dPt), 2);
-%f = pro' * sum((c1 * P1t + c2 * P2t  - (la+ln)/2 * abs(dPt) + (la-ln)/2 * dPt), 2) + c3 * A * J * T;
-% J * T = sum(Qt, 2);
+f = pro' * sum((c1 * P1st + c2 * P2st + c3 * A * Qst  - (cp+cn)/2 * abs(dPt) - (cp-cn)/2 * dPt), 2);
 
 F = [];
 F = F + (0 <= P1st <= P1stMax) + (0 <= P2st <= P2stMax);       %(4)
 F = F + (sum(P1st, 2) >= P1sMin);    % (5)
 F = F + (sum(P2st, 2) >= P2sMin);    % (6)
-% A * Qt = P3t
+% A * Qt = P3t  %(7)
 F = F + (VMin <= V <= VMax);    % (9)
 F = F + (V(:, 1) == Vini) + (V(:, 25) == Vini);   % (10)
 F = F + (QMin <= Qst <= QMax);   % (11)
@@ -70,18 +68,27 @@ end
 ops = sdpsettings('solver', 'lpsolve');
 optimize(F, -f, ops);  % 解决最小化问题
 
-double(f)
+
+% result = [];
+% result = [result; double(P1st)];
+% result = [result; double(P2st)];
+% result = [result; double(Qst) * A];
+% result = [result; double(P0t)];
+% figure(1);
+% plot(1: T, result(end,:));
 result = [];
-result = [result; double(P1st)];
-result = [result; double(P2st)];
-result = [result; double(Qst) * A];
-result = [result; double(P0t)];
+result.P1st = double(P1st);
+result.P2st = double(P2st);
+result.P3st = double(Qst) * A;
+result.P0t = double(P0t);
+figure(1);
+plot(1: T, result.P0t);
 
-figure(2);
-plot([1: T], result(end,:));
-
-
-
-
+result.VppNetProfit = double(f);
+result.VppSellProfit = double(pro' * sum((c1 * P1st + c2 * P2st + c3 * Qst * A), 2));
+result.backup = double(pro' * sum(((cp+cn)/2 * abs(dPt) + (cp-cn)/2 * dPt),2));
+result.OtherSellProfit = double(cto * (Lt - pro' * (P1st + P2st + Qst * A))');
+result.OtherNetProfit = result.OtherSellProfit + result.backup;
+result.DCExpense = result.VppNetProfit + result.OtherNetProfit;
 
 

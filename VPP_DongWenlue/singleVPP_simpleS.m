@@ -1,10 +1,7 @@
 clear
 clc
 
-load sp
-load spp
-load wp
-load wpp
+load sampleData
 
 T = 24;
 
