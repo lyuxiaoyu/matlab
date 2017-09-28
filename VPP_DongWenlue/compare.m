@@ -58,6 +58,7 @@ f2 = Lt * cto' - P0t * cto' + pro' * (abs(dPt) * cpnc1' +  dPt * cpnc2');
 ops = sdpsettings('solver', 'bnb');
 
 for i = 1: 20
+    %
     J = i * 2 * 3600;
     
     % S.T.
@@ -93,6 +94,10 @@ for i = 1: 20
     result2.OtherNetProfit(i) = result2.OtherSellProfit(i) + result2.backup(i);
     result2.DCExpense(i) = result2.VppNetProfit(i) + result2.OtherNetProfit(i);
     
+    if(result2.VppNetProfit(i) < 0)
+       
+    end
+
     fprintf('iter = %d', i);
     display(result1);
     display(result2);
