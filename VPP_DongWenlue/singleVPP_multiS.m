@@ -51,6 +51,7 @@ P0t = sdpvar(1, T);
 
 dPt = (repmat(P0t,[S 1])- P1st - P2st - A * Qst);
 f = pro' * sum((c1 * P1st + c2 * P2st + c3 * A * Qst  - (cp+cn)/2 * abs(dPt) - (cp-cn)/2 * dPt), 2);
+% f = pro' * sum((c1 * P1st + c2 * P2st + c3 * A * Qst - cp * max(dPt, 0) + cn * min(dPt, 0)), 2);
 
 F = [];
 F = F + (0 <= P1st <= P1stMax) + (0 <= P2st <= P2stMax);       %(4)

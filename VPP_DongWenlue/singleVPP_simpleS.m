@@ -36,6 +36,7 @@ P0t = sdpvar(1, T);
 dPt = (P0t - P1t - P2t - A * Qt);
 
 f = c1 * sum(P1t) + c2 * sum(P2t) + c3 * A * J * T - sum((cp+cn)/2 * abs(dPt) + (cp-cn)/2 * dPt) ;
+% f = c1 * sum(P1t) + c2 * sum(P2t) + c3 * A * J * T + sum(cp * max(dPt, 0) + cn * min(dPt, 0)); 
 % J * T = sum(Qt);
 
 F = [];
