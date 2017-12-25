@@ -33,3 +33,17 @@ plot(1:24, tmp1, 1:24, -tmp2);
 rate = tmp1 ./ -tmp2;
 tmp = rate(rate < 1.5);
 tmp = tmp(tmp > 1 / 1.5);
+
+
+for i = 1: result.T
+    if(rate(i) < 3) && (rate(i) > 0.3)
+        record(i) = bidding(dP(:, i)');
+    else
+        record(i) = 0;
+    end
+end
+
+
+figure(3);
+
+plot(1: sum(record ~= 0), rate(record ~= 0), 1: sum(record ~= 0), 2 - record(record ~= 0));

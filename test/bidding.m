@@ -1,14 +1,16 @@
-function [price] = bidding(dP)
+function [price, dealingQuantity] = bidding(dP)
 
+if size(dP, 2) == 1
+    dP = dP';
+end
 
-sellIndex = dP > 0;
-sell = dP(sellIndex);
+sellIndex = dP > 0.00001;
+sellOwn = dP(sellIndex);
  
-buyIndex = dP < 0;
-buy = -dP(buyIndex);
-
-
-if isempty(sell) || isempty(buy)
+buyIndex = dP < -0.00001;
+buyOwn = -dP(buyIndex);  
+dealingQuantity = zeros(size(dP));
+if isempty(sellOwn) || isempty(buyOwn)
     price = 0;
 else
     cs = 0.19;
@@ -16,10 +18,10 @@ else
     bidPrice =  0.3: 0.05: 1.2;
     m = size(bidPrice, 2);
 
-    sellN = size(sell, 2); 
+    sellN = size(sellOwn, 2); 
     sellQ = ones(sellN, m);
     sellDecision = ones(sellN, 1);
-    buyN = size(buy, 2);
+    buyN = size(buyOwn, 2);
     buyQ = ones(buyN, m);
     buyDecision = ones(buyN, 1);
 
@@ -44,34 +46,50 @@ else
 
         is = 1;
         ib = 1;
+        isl = is;
+        ibl = ib;
         clearPrice = (sellBidPrice(sellbidIndex(is)) + buyBidPrice(buybidIndex(ib))) / 2;
-        sumSeller = sell(sellbidIndex(is));
-        sumBuyer = buy(buybidIndex(ib));
+        sumSeller = sellOwn(sellbidIndex(is));
+        sumBuyer = buyOwn(buybidIndex(ib));
         while  true
             if sellBidPrice(sellbidIndex(is)) > buyBidPrice(buybidIndex(ib))
                 break;
             end
             clearPrice = (sellBidPrice(sellbidIndex(is)) + buyBidPrice(buybidIndex(ib))) / 2;
             if sumSeller < sumBuyer
+                isl = is;
                 is = is + 1;
                 if is > sellN
                     break;
                 end
-                sumSeller = sumSeller + sell(sellbidIndex(is));
+                sumSeller = sumSeller + sellOwn(sellbidIndex(is));
             else
+                ibl = ib;
                 ib = ib + 1;
                 if ib > buyN
                     break;
                 end
-                sumBuyer = sumBuyer + buy(buybidIndex(ib));
+                sumBuyer = sumBuyer + buyOwn(buybidIndex(ib));
             end
         end
 
-        sellReward = (sellBidPrice <= clearPrice) * (clearPrice - cs);
-        buyReward = (buyBidPrice >= clearPrice) * (cb - clearPrice);
-
+        if (sumSeller > sumBuyer)
+            buyQuantity = (buyBidPrice >= clearPrice) .* buyOwn;
+            sellAllIndex = sellBidPrice < sellBidPrice(sellbidIndex(isl));
+            sellPartIndex = sellBidPrice == sellBidPrice(sellbidIndex(isl));
+            sellQuantity = (sellAllIndex + sellPartIndex * (sumBuyer - sum(sellOwn(sellAllIndex)))/ sum(sellOwn(sellPartIndex))) .* sellOwn;
+        else
+            sellQuantity = (sellBidPrice <= clearPrice) .* sellOwn;
+            buyAllIndex = buyBidPrice > buyBidPrice(buybidIndex(ibl));
+            buyPartIndex = buyBidPrice == buyBidPrice(buybidIndex(ibl));
+            buyQuantity = (buyAllIndex + buyPartIndex * (sumSeller - sum(buyOwn(buyAllIndex)))/ sum(buyOwn(buyPartIndex))) .* buyOwn;
+        end
+        sellReward = sellQuantity * (clearPrice - cs);
+        buyReward = buyQuantity * (cb - clearPrice);
         priceRecord(i) = clearPrice;
-
+%         buyReward = (buyBidPrice >= clearPrice) * (cb - clearPrice) .* buy;
+%         sellReward = (sellBidPrice <= clearPrice) * (clearPrice - cs) .* sell;
+        
         % 改进决策
         for j = 1: sellN
            sellQ(j, :) = REImprove(sellReward(j), sellDecision(j), sellQ(j, :));
@@ -81,6 +99,8 @@ else
            buyQ(j, :) = REImprove(buyReward(j), buyDecision(j), buyQ(j, :));
         end
     end
-    plot(priceRecord);
+%     plot(priceRecord);
+    dealingQuantity(sellIndex) = -sellQuantity;
+    dealingQuantity(buyIndex) = buyQuantity;
     price = clearPrice;
 end   
