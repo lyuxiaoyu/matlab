@@ -14,11 +14,11 @@ end
 P0nt = result.P0t;
 dP  = Pnt - P0nt;
 dPsum = sum(dP, 1);
-before = sum(dP(dP > 0)) * 0.4 + sum(-dP(dP < 0) * 0.7);
-after = sum(dPsum(dPsum > 0)) * 0.4 + sum(-dPsum(dPsum < 0) * 0.7);
+before = sum(dP(dP > 0)) * 0.4 + sum(-dP(dP < 0) * 1.2);
+after = sum(dPsum(dPsum > 0)) * 0.4 + sum(-dPsum(dPsum < 0) * 1.2);
 
-profitBefore = sum(sum(Pnt * 0.59, 2)) - before;
-profitAfter = sum(sum(Pnt * 0.59, 2)) - after;
+profitBefore = sum(sum(Pnt * 0.61, 2)) - before;
+profitAfter = sum(sum(Pnt * 0.61, 2)) - after;
 
 
 tmp1 = dP;

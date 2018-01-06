@@ -23,11 +23,11 @@ for iter = 1: iterMax
             recordQ(:, t) = tmpQ';
     end
 
-    profitBefore = Pnt * 0.59 - (dP > 0) .* dP * 0.4 + (dP < 0) .* dP * 0.7;
+    profitBefore = Pnt * 0.61 - (dP > 0) .* dP * 0.4 + (dP < 0) .* dP * 1.2;
 
     PntA = Pnt + recordQ;
     dPA = dP + recordQ;
-    profitAfter = PntA * 0.59 - (dPA > 0) .* dPA * 0.4 + (dPA < 0) .* dPA * 0.7 - recordQ .* recordPrice;
+    profitAfter = PntA * 0.61 - (dPA > 0) .* dPA * 0.4 + (dPA < 0) .* dPA * 1.2 - recordQ .* recordPrice;
 
     vppProfitBefore = sum(profitBefore, 2);
     vppProfitAfter = sum(profitAfter, 2);

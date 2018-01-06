@@ -19,9 +19,9 @@ function result = dayaheadscheduling()
     % cto = ones(1,T) * 0.59; % 峰谷电价
     % cto(1: 7) = 0.26;   
     % cto(17: 21) = 0.92;
-    cto = ones(1,T) * 0.59;
+    cto = ones(1,T) * 0.61;
     alpha = 1;
-    cp = 0.7 / alpha;
+    cp = 1.2 / alpha;
     cn = 0.4 * alpha;
 
     % 初始化变量
