@@ -1,38 +1,38 @@
 clear   
 clc
 
-load  dayAheadResult.mat
+load  dayAheadResult_20180108163859.mat
 
-iterMax = 10;
+iterMax = 100;
 
 for iter = 1: iterMax
-    Pnt = zeros(result.VppN, result.T);
-    for i = 1: result.VppN
-        s = ceil(rand * result.S); 
-        Pnt(i, :) = squeeze(result.P1st(i, s, :) + result.Qst(i, s, :));
+    % 实际出力，并计算与申报的偏差量
+    dP = zeros(vppNum, T);
+    for i = 1: vppNum
+        s = ceil(rand * dayAheadResult(i).S);       
+        dP(i, :) = dayAheadResult(i).dPst(s, :);
     end
-
-    P0nt = result.P0t;
-    dP  = Pnt - P0nt;
     
-    recordPrice = zeros(1, result.T);
-    recordQ = zeros(result.VppN, result.T);
+    % 合作
+    recordPrice = zeros(1, T);
+    recordQ = zeros(vppNum, T);
 
-    for t = 1: result.T
+    for t = 1: T
             [recordPrice(t), tmpQ] = bidding(dP(:, t)');
             recordQ(:, t) = tmpQ';
     end
-
-    profitBefore = Pnt * 0.61 - (dP > 0) .* dP * 0.4 + (dP < 0) .* dP * 1.2;
-
-    PntA = Pnt + recordQ;
-    dPA = dP + recordQ;
-    profitAfter = PntA * 0.61 - (dPA > 0) .* dPA * 0.4 + (dPA < 0) .* dPA * 1.2 - recordQ .* recordPrice;
-
-    vppProfitBefore = sum(profitBefore, 2);
-    vppProfitAfter = sum(profitAfter, 2);
-
-    sumProfitBefore(iter) = sum(vppProfitBefore);
-    sumProfitAfter(iter) = sum(vppProfitAfter);
-    disp(iter);
+    
+    % 每个vpp收益增加量
+    profitT = recordQ .* ((recordQ > 0) * 0.4 + (recordQ < 0) * (-1.2));
+    profitVpp = sum(profitT, 2);
+    profitAll(iter) = sum(profitVpp);
 end
+
+% 各vpp合作前收益
+Object = zeros(vppNum, 1);
+for i = 1: vppNum
+    Object(i) = dayAheadResult(i).Object;
+end
+sum(Object)
+
+mean(profitAll)
