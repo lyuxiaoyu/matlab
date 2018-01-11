@@ -1,21 +1,38 @@
-function [vppNum, dayAheadResult, T] = dayaheadscheduling(flagSave)
-
+function [dayAheadResult, caseOder,  T, vppNum] = dayaheadscheduling(caseOder, alpha, flagSave)
 tic
 
+if ~exist("flagSave", "var")
+    flagSave = " "; % 是否保存结果
+end
+
+if ~exist("caseOder", "var")
+    caseOder = 1;   % 方案选择
+end
+
+if ~exist("alpha", "var")
+    alpha = 1.0;
+end
+
+% excel文件名
 excelFileName = "data.xlsx";
-vppSheetBias = xlsread(excelFileName, 1, "A3");
+
+
 % 方案选择
-[~, chooseArea] = xlsread(excelFileName, 1, "B6");   
+caseArea = {"B8", "C8", "D8", "E8", "F8"};
+[~, chooseArea] = xlsread(excelFileName, 1, caseArea{caseOder});   
 caseSet = int16(xlsread(excelFileName, 1, chooseArea{1}));
-vppOderSet = caseSet(:, 1);
+vppOderSet = caseSet(:, 1);                 
 flagStorgeSet = caseSet(:, 2);             % 是否启用储能
 flagDemandResponseSet =  caseSet(:, 3);    % 是否启用需求响应
 
-% 结果输出
+% 初始化
 T = 24;
-vppNum = size(vppOderSet, 1);
+vppSheetBias = xlsread(excelFileName, 1, "A3");
+vppNum = size(vppOderSet, 1);   
+
+% 结果保存
 dayAheadResult(vppNum, 1) = ...
-    struct('vppOder', [], 'S', [], 'Object',[], 'P1st',[], 'P2st',[], 'PEst',[], ...
+    struct('vppOder', [], 'S', [], 'Object',[], 'P1st',[], 'P2st',[], 'PEst',[], 'PGst', [], ...
     'dPLst', [], 'PBst', [],'PSLst',[], 'dPst', [], 'PL',[],  'P0t', []);
     
 parfor oder = 1: vppNum
@@ -29,13 +46,13 @@ parfor oder = 1: vppNum
     F = [];
     % toc
 %% 电价
-    u = 0.001;                  % 元/(kwh * kwh)  % 需求舒适度补偿系数 
+    u = 0.0001;                  % 元/(kwh * kwh)  % 需求舒适度补偿系数 
     % cto = ones(1,T) * 0.59; % 峰谷电价
     % cto(1: 7) = 0.31;   
     % cto(17: 21) = 0.92;
-    alpha = 1;
-    cp = 1.2;
-    cn = 0.4;
+    % alpha = 1;
+    cp = 1.2 / alpha;
+    cn = 0.4 * alpha;
     c1 = ones(1,T) * 0.61;  % 新能源价格
     clt = ones(1,T) * 0.61; % 对内售电价格
     cb = ones(1,T) * 0.69;         % 向外购电价格
@@ -52,7 +69,7 @@ parfor oder = 1: vppNum
         flagWp = 1;
         pro1 = xlsread(excelFileName, vppSheetOder, chooseArea{1});
         [~, chooseArea] = xlsread(excelFileName, vppSheetOder, "B3");
-        wp = xlsread(excelFileName, vppSheetOder, chooseArea{1}) * 1000; % mk转化为 kw
+        wp = xlsread(excelFileName, vppSheetOder, chooseArea{1}); %  kw
     end
 
     % 光
@@ -61,7 +78,7 @@ parfor oder = 1: vppNum
         flagSp = 1;
         pro2 = xlsread(excelFileName, vppSheetOder, chooseArea{1});
         [~, chooseArea] = xlsread(excelFileName, vppSheetOder, "B5");
-        sp = xlsread(excelFileName, vppSheetOder, chooseArea{1}) * 1000; % mk转化为 kw
+        sp = xlsread(excelFileName, vppSheetOder, chooseArea{1}); %  kw
     end
 
     if (1 == flagWp && 1 == flagSp)
@@ -90,7 +107,8 @@ parfor oder = 1: vppNum
     if (1 == flagWp)
         P1st = sdpvar(S, T);        % 风各场景计划出力
         % 约束
-        F = F + (0 <= P1st <= P1stMax);      
+        F = F + (0 <= P1st);
+        F = F + (P1st <= P1stMax);      
         F = F + (sum(P1st, 2) >= sum(P1stMax, 2) * (1 - 0.05));   
     else
         P1st = zeros(S, T);
@@ -99,7 +117,8 @@ parfor oder = 1: vppNum
     if (1 == flagSp)
         P2st = sdpvar(S, T);        % 光各场景计划出力
         % 约束
-        F = F + (0 <= P2st <= P2stMax);      
+        F = F + (0 <= P2st);
+        F = F + (P2st <= P2stMax);      
         F = F + (sum(P2st, 2) >= sum(P2stMax, 2) * (1 - 0.05)); 
     else
         P2st = zeros(S, T);
@@ -119,9 +138,11 @@ parfor oder = 1: vppNum
         PEMin = xlsread(excelFileName, vppSheetOder, "F3");
 
         % 约束
-        F = F + (EMin <= Est <= EMax);    % 储能约束
+        F = F + (EMin <= Est);
+        F = F + (Est <= EMax);    % 储能约束
         F = F + (Est(:, 1) == Eini) + (Est(:, 25) == Eini);   % 
-        F = F + (PEMin <= PEst <= PEMax);   % 
+        F = F + (PEMin <= PEst);
+        F = F + (PEst <= PEMax);  % 
         for t = 1: T
             F = F + (Est(:, t+1) == Est(:, t) - PEst(:, t)); % 
         end
@@ -165,7 +186,7 @@ parfor oder = 1: vppNum
     % toc
 %% vpp各场景发电量
     PGst = P1st + P2st + PEst; %vpp各场景发电量
-
+    
     % toc
 %% 售电购电rs
 
@@ -175,7 +196,8 @@ parfor oder = 1: vppNum
 
         % 约束
         PBst = repmat(PL,[S 1]) + dPLst - PSLst;          % 能量平衡
-        F = F + (0 <= PSLst <= PGst);            % 新能源内售电量约束
+        F = F + (0 <= PSLst);
+        F = F + (PSLst <= PGst);            % 新能源内售电量约束
         F = F + (PSLst <= repmat(PL,[S 1]) + dPLst);
     else
         PSLst = zeros(S, T);
@@ -212,6 +234,7 @@ parfor oder = 1: vppNum
     dayAheadResult(oder).P1st = double(P1st);
     dayAheadResult(oder).P2st = double(P2st);
     dayAheadResult(oder).PEst = double(PEst);
+    dayAheadResult(oder).PGst = double(PGst);
     dayAheadResult(oder).dPLst = double(dPLst);
     dayAheadResult(oder).PBst = double(PBst);
     dayAheadResult(oder).PSLst = double(PSLst);
@@ -219,20 +242,28 @@ parfor oder = 1: vppNum
     dayAheadResult(oder).PL = PL;
     dayAheadResult(oder).P0t = double(P0t);   
     
-%     display(result.Object);
-%     s = 3;
-%     plot(1:24, double(PGst(s, :)) ... 
-%     , 1:24, result.P0t ...
-%     , 1:24, double(PGst(s, :)) - double(PSLst(s, :)) - result.Pb(s, :) ...
-%     , 1:24, PL ...
-%     , 1:24, double(dPLst(s, :)) + PL...
-%     );
+
 end
 toc
 
-if nargin == 1 && "save" == flagSave
-    resultSaveFileName = sprintf("dayAheadResult_%s", datestr(now,'yyyymmddHHMMSS'));
-    save(resultSaveFileName, "dayAheadResult", "vppNum", "T");
-    fprintf("result is saved in %s", resultSaveFileName);
+
+if vppNum == 1
+    r = dayAheadResult(1);
+    display(r.Object);
+    s = 3;
+    plot(1:24, r.P1st(s, :) + r.P2st(s, :) ... 
+    , 1:24, r.P0t ...
+    , 1:24, r.PGst(s, :) - r.PSLst(s, :) - r.PBst(s, :) ...
+    , 1:24, r.PL ...
+    , 1:24, r.dPLst(s, :) + r.PL...     
+    );
+end
+
+
+if "save" == flagSave
+    resultSaveFileName = sprintf("./record/dayAheadResult_%s", datestr(now,'yyyymmddHHMMSS'));
+    save(resultSaveFileName, ... 
+        "dayAheadResult", "vppNum", "T", "caseOder");
+    fprintf("result is saved in %s\n", resultSaveFileName);
 end
 

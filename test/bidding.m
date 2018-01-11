@@ -13,9 +13,9 @@ dealingQuantity = zeros(size(dP));
 if isempty(sellOwn) || isempty(buyOwn)
     price = 0;
 else
-    cs = 0.19;
-    cb = 1.29;
-    bidPrice =  0.3: 0.05: 1.2;
+    cs = - 0.4;
+    cb = 1.2;
+    bidPrice =  -0.3: 0.05: 1.1;
     m = size(bidPrice, 2);
 
     sellN = size(sellOwn, 2); 
@@ -59,6 +59,7 @@ else
             if sumSeller < sumBuyer
                 isl = is;
                 is = is + 1;
+                ibl = ib;
                 if is > sellN
                     break;
                 end
@@ -66,6 +67,7 @@ else
             else
                 ibl = ib;
                 ib = ib + 1;
+                isl = is;
                 if ib > buyN
                     break;
                 end
@@ -92,14 +94,14 @@ else
         
         % 改进决策
         for j = 1: sellN
-           sellQ(j, :) = REImprove(sellReward(j), sellDecision(j), sellQ(j, :));
+           sellQ(j, :) = REImprove(sellReward(j) / 500, sellDecision(j), sellQ(j, :));
         end
 
         for j = 1: buyN
-           buyQ(j, :) = REImprove(buyReward(j), buyDecision(j), buyQ(j, :));
+           buyQ(j, :) = REImprove(buyReward(j) / 500, buyDecision(j), buyQ(j, :));
         end
     end
-%     plot(priceRecord);
+    plot(priceRecord);
     dealingQuantity(sellIndex) = -sellQuantity;
     dealingQuantity(buyIndex) = buyQuantity;
     price = clearPrice;

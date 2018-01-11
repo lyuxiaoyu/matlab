@@ -1,6 +1,6 @@
 function decision = REDecision(Q)
     m = size(Q, 2);
-    k = 1;
+    k = 1.2;
     c = k * mean(Q);
     expQ = exp(Q / c);
     p = expQ / sum(expQ);
