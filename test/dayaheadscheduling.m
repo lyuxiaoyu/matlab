@@ -46,16 +46,16 @@ parfor oder = 1: vppNum
     F = [];
     % toc
 %% 电价
-    u = 0.0001;                  % 元/(kwh * kwh)  % 需求舒适度补偿系数 
-    % cto = ones(1,T) * 0.59; % 峰谷电价
-    % cto(1: 7) = 0.31;   
-    % cto(17: 21) = 0.92;
-    % alpha = 1;
-    cp = 1.2 / alpha;
-    cn = 0.4 * alpha;
-    c1 = ones(1,T) * 0.61;  % 新能源价格
-    clt = ones(1,T) * 0.61; % 对内售电价格
-    cb = ones(1,T) * 0.69;         % 向外购电价格
+u = 0.0001;                  % 元/(kwh * kwh)  % 需求舒适度补偿系数 
+c1 = ones(1,T) * 0.61;  %
+cb = ones(1,T) * 0.71;  % 向外购电价格
+
+clt = ones(1,T) * 0.59;     % 峰谷电价
+clt(1: 7) = 0.34;   
+clt(17: 21) = 0.87;
+
+cp = ones(1,T) * 0.95;
+cn = ones(1,T) * 0.45;
 
     % toc
 %% 风光场景
@@ -215,7 +215,7 @@ parfor oder = 1: vppNum
 
     % 误报量惩罚额
     dPst = repmat(P0t,[S 1]) - (PGst - dPLst - repmat(PL,[S 1]));     % 误报量
-    ps = sum((cp+cn)/2 * abs(dPst) + (cp-cn)/2 * dPst, 2);                    % 误报量惩罚
+    ps = abs(dPst) * (cp+cn)'/2 +  dPst * (cp-cn)'/2                % 误报量惩罚
 
     % toc
 %% 目标函数
@@ -252,6 +252,7 @@ if vppNum == 1
     display(r.Object);
     s = 3;
     plot(1:24, r.P1st(s, :) + r.P2st(s, :) ... 
+    , 1:24, r.PEst(s, :) ...
     , 1:24, r.P0t ...
     , 1:24, r.PGst(s, :) - r.PSLst(s, :) - r.PBst(s, :) ...
     , 1:24, r.PL ...

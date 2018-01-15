@@ -1,4 +1,4 @@
-function [price, dealingQuantity] = bidding(dP)
+function [price, dealingQuantity] = bidding(dP, cs, cb)
 
 if size(dP, 2) == 1
     dP = dP';
@@ -10,12 +10,17 @@ sellOwn = dP(sellIndex);
 buyIndex = dP < -0.00001;
 buyOwn = -dP(buyIndex);  
 dealingQuantity = zeros(size(dP));
-if isempty(sellOwn) || isempty(buyOwn)
+
+cs = -cs;
+clow = cs + 0.12;
+cup = cb - 0.12;
+if isempty(sellOwn) || isempty(buyOwn) || clow >= cup
     price = 0;
 else
-    cs = - 0.4;
-    cb = 1.2;
-    bidPrice =  -0.3: 0.05: 1.1;
+%     cs = - 0.4;
+%     cb = 1.2;
+
+    bidPrice =  clow: (cup - clow) / 20: cup;
     m = size(bidPrice, 2);
 
     sellN = size(sellOwn, 2); 
@@ -101,7 +106,7 @@ else
            buyQ(j, :) = REImprove(buyReward(j) / 500, buyDecision(j), buyQ(j, :));
         end
     end
-    plot(priceRecord);
+%    plot(priceRecord);
     dealingQuantity(sellIndex) = -sellQuantity;
     dealingQuantity(buyIndex) = buyQuantity;
     price = clearPrice;
